@@ -3,19 +3,19 @@ import {API_LINK} from "@/constants/API_link";
 
 export const handleUpdateRequest = async (route, method, requestBody, userToken) => {
     try {
-        // 發送更新請求
+        // Send API request
         const response = await fetch(`${API_LINK}/${route}`, {
             method: method,
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${userToken}`, // 設定 Authorization Token
+                Authorization: `Bearer ${userToken}`,
             },
             body: JSON.stringify(requestBody),
         });
 
-        const data = await response.json(); // 解析回傳的 JSON 資料
+        const data = await response.json();
 
-        // 根據不同的狀態碼進行回應處理
+        // Handle different response status
         if (response.status === 200) {
             Alert.alert('Success', data.message || 'Update successful!');
             return data;
@@ -28,7 +28,6 @@ export const handleUpdateRequest = async (route, method, requestBody, userToken)
         } else if (response.status === 409) {
             Alert.alert('Conflict', data.error || 'Email is already in use.');
         } else if (response.status === 422) {
-            // 顯示詳細格式錯誤訊息
             let errorMessage = data.error || 'Invalid format.';
             if (data.message) {
                 for (const [key, value] of Object.entries(data.message)) {

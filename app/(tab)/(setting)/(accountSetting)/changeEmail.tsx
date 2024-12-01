@@ -1,51 +1,81 @@
-import React, { useState } from 'react';
-import {TouchableOpacity, View, Text, StyleSheet, TextInput, Alert} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { TouchableOpacity, View, Text, StyleSheet, TextInput, Alert } from 'react-native';
 import GradientTheme from '@/components/GradientTheme';
-import { useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '@/components/accAuth';
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import {handleUpdateRequest} from "@/components/handleUpdate";
+import { handleUpdateRequest } from "@/components/handleUpdate";
 
 export default function ChangeEmailScreen() {
-    const { userData, userToken, login} = useAuth();
-    const [email, setEmail] = useState(userData?.email || '')
-    const router = useRouter();
+    const { userData, userToken, setUserData } = useAuth();
+    const [email, setEmail] = useState(userData?.email || '');
     const navigation = useNavigation();
+
+    // Update `email` when `userData` changes (in case it changes externally)
+    useEffect(() => {
+        setEmail(userData?.email || '');
+    }, [userData]);
+
+    // Email validation function using regex
+    const isValidEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;  // Basic email pattern
+        return emailRegex.test(email);
+    };
 
     const handleChangeEmail = async () => {
         if (!email) {
             Alert.alert('Error', 'Please enter your new email address.');
             return;
         }
-        const requestBody = {email}
-        const response = await handleUpdateRequest('/handle_update_email', 'PATCH', requestBody, userToken);
 
-        if (response) {
-            // 更新 `useAuth` 中的資料並返回 AccountSetting
-            const updatedUserData = { ...userData, email: response.data.email };
-            login(userToken, updatedUserData); // 更新 useAuth 內的狀態
-            navigation.goBack(); // 導航回到 AccountSetting 頁面
+        if (!isValidEmail(email)) {
+            Alert.alert('Error', 'Please enter a valid email address.');
+            return;
+        }
+
+        try {
+            const response = await handleUpdateRequest(
+                'handle_update_email',  // Adjust API route if necessary
+                'PATCH',
+                { email },  // Request body with new email
+                userToken
+            );
+
+            if (response) {
+                // Update the email in `userData` context
+                const updatedUserData = { ...userData, email: response.data.email };
+                setUserData(updatedUserData);  // Update state in context
+
+                Alert.alert('Success', 'Email updated successfully');
+                // Navigate back with a refresh
+                navigation.replace('(accountSetting)/accountSetting');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to update email. Please try again.');
         }
     };
 
     return (
         <GradientTheme>
             <View style={styles.container}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backButton}><FontAwesome6 size={28} name="arrow-left"/></Text>
+                <TouchableOpacity onPress={() => navigation.navigate('(accountSetting)/accountSetting')}>
+                    <Text style={styles.backButton}><FontAwesome6 size={28} name="arrow-left" /></Text>
                 </TouchableOpacity>
                 <View style={styles.card}>
                     <Text style={styles.label}>Email</Text>
                     <TextInput
                         style={styles.input}
                         value={email}
-                        onChangeText={(text) => setEmail(text)}
-                        editable={true}
+                        onChangeText={setEmail}
                         placeholder="Enter your email"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
                     />
                     <View style={styles.buttonContainer}>
-                        <TouchableOpacity onPress={() => router.back()} style={styles.cancelButton}>
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate('(accountSetting)/accountSetting')}
+                            style={styles.cancelButton}
+                        >
                             <Text style={styles.cancelText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={handleChangeEmail} style={styles.saveButton}>

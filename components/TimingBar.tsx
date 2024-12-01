@@ -5,7 +5,7 @@ import { View, Text, Switch, StyleSheet, Platform } from 'react-native';
 export default function TimingBar({ startTime, endTime, isActive, onToggle }) {
     return (
         <View style={styles.timingBar}>
-            {startTime !== "00:00:00" && endTime !== "23:59:59" ? (
+            {!(startTime === "00:00:00" && (endTime === "23:59:59" || endTime === "23:59:00")) ? (
                 <Text style={styles.timingBarText}>{startTime.slice(0, 5)} - {endTime.slice(0, 5)}</Text>
             ) : (
                 <Text style={styles.timingBarText}>Whole Day</Text>
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 20,
         borderRadius: 20,
-        padding: Platform.OS === 'ios' ? '3.5%' : '1.5%',
+        padding: '3.5%',
         marginBottom: 10,
     },
     timingBarText: {

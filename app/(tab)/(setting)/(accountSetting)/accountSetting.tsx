@@ -1,46 +1,62 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ScrollView } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, RefreshControl } from 'react-native';
 import GradientTheme from '@/components/GradientTheme';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/components/accAuth';
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import * as ColorScheme from '@/constants/ColorScheme';
-import {BTN_BACKGROUND} from "@/constants/ColorScheme";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import * as ColorScheme from '@/constants/ColorScheme';
 
 export default function AccountSettingScreen() {
     const router = useRouter();
     const navigation = useNavigation();
-    const { userData, isLoggedIn } = useAuth();
+    const { userData, isLoggedIn, logout, userToken } = useAuth();
+    const [refreshing, setRefreshing] = useState(false); // Track refreshing state
 
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        // Simulate a network request and refresh user data
+        setTimeout(() => {
+            navigation.replace('(accountSetting)/accountSetting'); // Replace the current route
+            setRefreshing(false);
+        }, 500); // Optional delay to show refresh animation
+    }, [navigation]);
 
     return (
         <GradientTheme>
-            <View style={styles.container}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
+            <ScrollView
+                contentContainerStyle={styles.container}
+                refreshControl={
+                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                }
+            >
+                <TouchableOpacity onPress={() => navigation.navigate('setting')}>
                     <Text style={styles.backButton}>
-                        <FontAwesome6 size={28} name="arrow-left"/>
+                        <FontAwesome6 size={28} name="arrow-left" />
                     </Text>
                 </TouchableOpacity>
                 <View style={styles.card}>
                     <View style={styles.infoContainer}>
                         <View>
-                             <Text style={styles.label}>Email:</Text>
-                             <Text style={styles.info}>{userData.email}</Text>
+                            <Text style={styles.label}>Email:</Text>
+                            {userData?.email && (  // Render only if userData.email exists
+                                <Text style={styles.info}>{userData.email}</Text>
+                            )}
                         </View>
                         <TouchableOpacity onPress={() => router.push('/changeEmail')}>
-                            <Text style={styles.editIcon}><FontAwesome6 size={20} name="pencil"/></Text>
+                            <Text style={styles.editIcon}><FontAwesome6 size={20} name="pencil" /></Text>
                         </TouchableOpacity>
                     </View>
 
                     <View style={styles.infoContainer}>
                         <View>
                             <Text style={styles.label}>Username:</Text>
-                            <Text style={styles.info}>{userData.username}</Text>
+                            {userData?.username && (  // Render only if userData.username exists
+                                <Text style={styles.info}>{userData.username}</Text>
+                            )}
                         </View>
                         <TouchableOpacity onPress={() => router.push('/changeName')}>
-                            <Text style={styles.editIcon}><FontAwesome6 size={20} name="pencil"/></Text>
+                            <Text style={styles.editIcon}><FontAwesome6 size={20} name="pencil" /></Text>
                         </TouchableOpacity>
                     </View>
 
@@ -50,7 +66,7 @@ export default function AccountSettingScreen() {
                             <Text style={styles.info}>********</Text>
                         </View>
                         <TouchableOpacity onPress={() => router.push('/changePassword')}>
-                            <Text style={styles.editIcon}><FontAwesome6 size={20} name="pencil"/></Text>
+                            <Text style={styles.editIcon}><FontAwesome6 size={20} name="pencil" /></Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -58,7 +74,7 @@ export default function AccountSettingScreen() {
                 <TouchableOpacity style={styles.deleteButton} onPress={() => router.push('/deleteAccount')}>
                     <Text style={styles.deleteText}>Delete Account</Text>
                 </TouchableOpacity>
-            </View>
+            </ScrollView>
         </GradientTheme>
     );
 }
@@ -72,7 +88,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: '5%',
     },
     card: {
-        height: '38%',
+        height: 'autp',
         backgroundColor: '#FFFFFF95',
         padding: '7%',
         borderRadius: 10,
@@ -81,7 +97,6 @@ const styles = StyleSheet.create({
         fontSize: 40,
         color: 'black',
         marginBottom: '3%',
-
     },
     infoContainer: {
         flexDirection: 'row',
@@ -101,7 +116,6 @@ const styles = StyleSheet.create({
         color: 'black',
     },
     deleteButton: {
-
         justifyContent: 'flex-end',
         backgroundColor: 'red',
         marginTop: '10%',

@@ -96,12 +96,15 @@ export function DeleteAlertAreaButton({ item, setAlertLocations }) {
         <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
             <FontAwesome name="minus-circle" size={20} color="red" />
         </TouchableOpacity>
+
     );
 }
 
 // Delete button for Alert Timing
 export function DeleteAlertTimingButton({ item, setAlertTiming }) {
     const { userToken } = useAuth();
+
+    const isWholeDay = (item.start_time === "00:00:00" && item.end_time === "23:59:59");
 
     const handleDelete = async () => {
         const url = `${API_LINK}/user_alert_time`;
@@ -140,9 +143,15 @@ export function DeleteAlertTimingButton({ item, setAlertTiming }) {
     };
 
     return (
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-            <FontAwesome name="minus-circle" size={20} color="red" />
-        </TouchableOpacity>
+        isWholeDay ? (
+            <TouchableOpacity style={styles.deleteButton}>
+                <FontAwesome name="minus-circle" size={20} color="grey" />
+            </TouchableOpacity>
+        ) : (
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+                <FontAwesome name="minus-circle" size={20} color="red" />
+            </TouchableOpacity>
+        )
     );
 }
 

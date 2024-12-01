@@ -1,94 +1,125 @@
-import React, {useCallback, useState} from 'react';
+import React, { useState, useCallback } from 'react';
 import { TouchableOpacity, View, Text, StyleSheet, TextInput, Alert } from 'react-native';
 import GradientTheme from '@/components/GradientTheme';
-import { useRouter } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
-import {handleUpdateRequest} from "@/components/handleUpdate";
 import { useAuth } from '@/components/accAuth';
-import {email} from "@sideway/address";
+import { useNavigation } from '@react-navigation/native';
+import { handleUpdateRequest } from "@/components/handleUpdate";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 export default function ChangePasswordScreen() {
-    // 定義狀態變數
-    const {userToken} = useAuth();
+    const { userToken } = useAuth(); // Get token from Auth context
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState(''); // 確認密碼欄位
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const navigation = useNavigation();
 
-    // 定義處理更改密碼的函式
+    // Password validation function
+    const validatePassword = (password) => {
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+        return passwordRegex.test(password);
+    };
+
+    // this is considered as privacy consideration since we will upload user's old password and new password to the server.
     const handleChangePassword = async () => {
-        // 檢查新密碼和確認密碼是否一致
-        if (!currentPassword || !newPassword ||!confirmPassword) {
+        // Validate inputs
+        if (!currentPassword || !newPassword || !confirmPassword) {
             Alert.alert('Error', 'Please enter all the required fields.');
             return;
         }
+
         if (newPassword !== confirmPassword) {
             setErrorMessage('Passwords do not match.');
             return;
         }
 
-        const requestBody = {current_password: currentPassword, new_password: newPassword};
-        await handleUpdateRequest('/handle_update_password', 'PATCH', requestBody, userToken);
-    };
+        const requestBody = {
+            current_password: currentPassword,
+            new_password: newPassword,
+        };
 
-    // 當使用者在確認密碼欄位中輸入時即進行即時比對
-    const handleConfirmPasswordChange = (text) => {
-        setConfirmPassword(text);
-        if (text !== newPassword) {
-            setErrorMessage('Passwords do not match.');
-        } else {
-            setErrorMessage('');
+        try {
+            const response = await handleUpdateRequest(
+                'handle_update_password', // Pass route without "/"
+                'PATCH',
+                requestBody,
+                userToken
+            );
+
+            if (response) {
+                setSuccessMessage('Password updated successfully!');
+                setErrorMessage('');
+                Alert.alert('Success', 'Password updated successfully!', [
+                    { text: 'OK', onPress: () => navigation.navigate('(accountSetting)/accountSetting') }
+                ]);
+            }
+        } catch (error) {
+            console.error('Error updating password:', error);
+            setErrorMessage('An error occurred. Please try again later.');
         }
     };
+
 
     return (
         <GradientTheme>
             <View style={styles.container}>
-                {/* 顯示當前密碼 */}
-                <Text style={styles.label}>Current Password:</Text>
-                <TextInput
-                    style={styles.input}
-                    value={currentPassword}
-                    onChangeText={setCurrentPassword}
-                    placeholder="Enter your current password"
-                    secureTextEntry
-                />
-
-                {/* 顯示新密碼 */}
-                <Text style={styles.label}>New Password:</Text>
-                <TextInput
-                    style={styles.input}
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    placeholder="Enter your new password"
-                    secureTextEntry
-                />
-
-                {/* 顯示確認密碼 */}
-                <Text style={styles.label}>Confirm Password:</Text>
-                <TextInput
-                    style={styles.input}
-                    value={confirmPassword}
-                    onChangeText={handleConfirmPasswordChange} // 使用 handleConfirmPasswordChange 方法
-                    placeholder="Confirm your new password"
-                    secureTextEntry
-                />
-
-                {/* 當密碼不一致時顯示錯誤訊息 */}
-                {errorMessage !== '' && (
-                    <Text style={styles.errorMessage}>{errorMessage}</Text>
-                )}
-
-                {/* 顯示送出按鈕 */}
-                <TouchableOpacity onPress={handleChangePassword} style={styles.saveButton}>
-                    <Text style={styles.saveText}>Update Password</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('(accountSetting)/accountSetting')}>
+                    <Text style={styles.backButton}><FontAwesome6 size={28} name="arrow-left" /></Text>
                 </TouchableOpacity>
+                <View style={styles.card}>
+                    <Text style={styles.label}>Current Password:</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={currentPassword}
+                        onChangeText={setCurrentPassword}
+                        placeholder="Enter your current password"
+                        secureTextEntry
+                    />
+
+                    <Text style={styles.label}>New Password:</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        placeholder="Enter your new password"
+                        secureTextEntry
+                    />
+
+                    <Text style={styles.label}>Confirm Password:</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={confirmPassword}
+                        onChangeText={(text) => {
+                            setConfirmPassword(text);
+                            if (text !== newPassword) {
+                                setErrorMessage('Passwords do not match.');
+                            } else {
+                                setErrorMessage('');
+                            }
+                        }}
+                        placeholder="Confirm your new password"
+                        secureTextEntry
+                    />
+
+                    {/* Display error message */}
+                    {errorMessage !== '' && (
+                        <Text style={styles.errorMessage}>{errorMessage}</Text>
+                    )}
+
+                    {/* Display success message */}
+                    {successMessage !== '' && (
+                        <Text style={styles.successMessage}>{successMessage}</Text>
+                    )}
+
+                    <TouchableOpacity onPress={handleChangePassword} style={styles.saveButton}>
+                        <Text style={styles.saveText}>Update Password</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </GradientTheme>
     );
 }
-
 
 const styles = StyleSheet.create({
     container: {
@@ -118,25 +149,13 @@ const styles = StyleSheet.create({
         marginBottom: '8%',
         backgroundColor: 'white',
     },
-    buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    cancelButton: {
-        backgroundColor: '#d3d3d3',
-        padding: '5%',
-        borderRadius: 10,
-        width: '45%',
-    },
-    cancelText: {
-        textAlign: 'center',
-        color: 'red',
-    },
     saveButton: {
         backgroundColor: '#5b67f7',
         padding: '5%',
         borderRadius: 10,
-        width: '45%',
+        width: '70%',
+        alignSelf: 'center',
+        marginTop: 20,
     },
     saveText: {
         color: 'white',
@@ -144,6 +163,11 @@ const styles = StyleSheet.create({
     },
     errorMessage: {
         color: 'red',
+        fontSize: 14,
+        marginBottom: 20,
+    },
+    successMessage: {
+        color: 'green',
         fontSize: 14,
         marginBottom: 20,
     },

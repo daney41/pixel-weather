@@ -34,18 +34,17 @@ export default function SignUpScreen() {
 
     const handleGuestLogin = () => {
         Alert.alert('Guest Mode', 'You have entered the app as a guest.');
-        // 導航到主頁或首頁（範例: HomeScreen）
         router.push('/(map)/map');
     };
 
     const handleSignUp = async () => {
-        // 檢查欄位是否填寫完整
+        // check validtity of all 3 input texts
         if (!email || !username || !password) {
             Alert.alert('Error', 'Missing email, username or password.');
             return;
         }
 
-        // 發送註冊請求到 API
+        // sign up API calls
         try {
             const response = await fetch(`${API_LINK}/handle_signup`, {
                 method: 'POST',
@@ -63,12 +62,10 @@ export default function SignUpScreen() {
 
             switch (response.status) {
                 case 201:
-                    // 註冊成功
                     Alert.alert('Success', 'Sign up successful!');
 
                     // Get user token
                     const userToken = data.data.token; // Use the data from the first call
-                    console.log('userToken: ' + userToken);
 
                     // Set up default whole-day alert timing
                     const requestBody = {
@@ -81,7 +78,7 @@ export default function SignUpScreen() {
                         const alertResponse = await fetch(`${API_LINK}/user_alert_time`, {
                             method: 'POST',
                             headers: {
-                                'Authorization': `Bearer ${userToken}`, // Use the token from the first response
+                                'Authorization': `Bearer ${userToken}`,
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify(requestBody),
@@ -90,37 +87,33 @@ export default function SignUpScreen() {
                         const alertData = await alertResponse.json(); // Handle the second response
 
                         if (alertResponse.status === 201) {
-                            Alert.alert('Success', 'Alert timing added successfully.');
+                            console.log('Success', 'Alert timing added successfully.');
                         } else if (alertResponse.status === 400) {
-                            Alert.alert('Error', 'Missing required data. Please try again.');
+                            console.log('Error', 'Missing required data. Please try again.');
                         } else if (alertResponse.status === 401) {
-                            Alert.alert('Error', 'Invalid or expired token.');
+                            console.log('Error', 'Invalid or expired token.');
                         } else if (alertResponse.status === 409) {
-                            Alert.alert('Error', 'This time range has already been added.');
+                            console.log('Error', 'This time range has already been added.');
                         } else if (alertResponse.status === 422) {
-                            Alert.alert('Error', 'Invalid time range: start_time cannot be later than end_time.');
+                            console.log('Error', 'Invalid time range: start_time cannot be later than end_time.');
                         } else {
-                            Alert.alert('Error', 'An unknown error occurred.');
+                            console.log('Error', 'An unknown error occurred.');
                         }
                     } catch (error) {
-                        Alert.alert('Error', 'Failed to connect to the server. Please try again.');
+                        console.log('Error', 'Failed to connect to the server. Please try again.');
                     }
-
-                    // 取得 token 和使用者資訊
-                    console.log('User Data:', data.data);
-                    // 可以在這裡保存 token 或者導航至登入頁面
                     router.push('/signupSuccess');
                     break;
                 case 400:
-                    // 缺少必要資訊
+                    // lacking necessary information
                     Alert.alert('Error', data.error || 'Missing email, username or password.');
                     break;
                 case 409:
-                    // 電子郵件已被使用
+                    // email registered
                     Alert.alert('Error', data.error || 'Email is already in use.');
                     break;
                 case 422:
-                    // 資料無效
+                    // invalid information
                     const invalidEmail = data.message?.email?.error || '';
                     const invalidUsername = data.message?.username?.error || '';
                     const invalidPassword = data.message?.password?.error || '';
@@ -131,23 +124,23 @@ export default function SignUpScreen() {
                     );
                     break;
                 case 500:
-                    // 伺服器錯誤
+                    // server error
                     Alert.alert('Error', data.error || 'An internal server error occurred. Please try again later.');
                     break;
                 default:
-                    // 其他錯誤
+                    // other errors
                     Alert.alert('Error', data.error || 'An error occurred. Please try again.');
                     break;
             }
         } catch (error) {
-            // 處理伺服器錯誤
+            // Server error
             console.error(error);
             Alert.alert('Error', 'An internal server error occurred. Please try again later.');
         }
     };
 
     const handleLogin = () => {
-        router.push('/login');  // 導航到 `login` 頁面
+        router.push('/login');
     };
 
     return (
@@ -158,24 +151,24 @@ export default function SignUpScreen() {
             <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
                 <GradientTheme>
                     <View style={styles.container}>
-                        {/* 標題區域 */}
+                        {/* Welcome Text */}
                         <Text style={styles.title}>Welcome</Text>
 
-                        {/* 繼續訪客模式按鈕 */}
+                        {/* Visitor button */}
                         <View style={styles.signupContainer}>
                             <View style={{width: '85%'}}>
                                 <TouchableOpacity style={styles.guestButton} onPress={handleGuestLogin}>
                                     <Text style={styles.guestButtonText}>Continue as a guest!</Text>
                                 </TouchableOpacity>
 
-                                {/* 分隔線 */}
+                                {/* Breaker */}
                                 <View style={styles.dividerContainer}>
                                     <View style={styles.line} />
                                     <Text style={styles.dividerText}> Or create an account </Text>
                                     <View style={styles.line} />
                                 </View>
 
-                                {/* 輸入框區域 */}
+                                {/* Text input */}
                                 <Text>Email</Text>
                                 <TextInput
                                     style={styles.input}
@@ -207,19 +200,24 @@ export default function SignUpScreen() {
                                     secureTextEntry
                                 />
 
-                                {/* 註冊按鈕 */}
+                                {/* Registration button */}
                                 <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
                                     <Text style={styles.signUpButtonText}>Join our community!</Text>
                                 </TouchableOpacity>
                             </View>
-                            {/* 登入連結 */}
+                            {/* Login Button */}
                             <Text style={styles.loginLink} onPress={handleLogin}>
                                 Already have an account? Login
                             </Text>
 
-                            {/* 使用條款與隱私政策 */}
+                            {/* Terms & Privacy */}
                             <View style={styles.termsContainer}>
-                                <Text style={styles.termsText} onPress={() => router.push('/privacy')}>Terms of Use | Privacy Policy</Text>
+                                <Text
+                                    style={styles.termsText}
+                                    onPress={() => router.push('/privacy')}
+                                >
+                                    Terms of Use | Privacy Policy
+                                </Text>
                             </View>
                         </View>
                     </View>

@@ -6,21 +6,25 @@ import PostedScreen from './PostedScreen';
 import GradientTheme from '@/components/GradientTheme';
 import * as ColorScheme from '@/constants/ColorScheme';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/components/accAuth'
+import { useAuth } from '@/components/accAuth';
 
 const Tab = createMaterialTopTabNavigator();
 
 export default function LogsScreen() {
     const router = useRouter();
-    // if the user is not logged in, login screen is displayed
-        const { isLoggedIn } = useAuth();
+    const { isLoggedIn } = useAuth();
 
+        // If the user is not logged in, login screen is displayed
         if (!isLoggedIn) {
             return (
                 <GradientTheme>
                     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', }}>
-                        <Text style={{fontSize: 15, marginBottom: '3%'}}>Please log in to view your viewed or posted posts.</Text>
-                        <TouchableOpacity style={styles.popUpBtn} onPress={() => router.push('/login')}>
+                        <Text style={{fontSize: 15, marginBottom: '3%'}}>
+                            Please log in to view your viewed or posted posts.
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.popUpBtn}
+                            onPress={() => router.push('/login')}>
                             <Text style={styles.popUpBtnText}>Sign up or log in</Text>
                         </TouchableOpacity>
                     </View>
@@ -31,7 +35,7 @@ export default function LogsScreen() {
     return (
         <GradientTheme>
             <Tab.Navigator
-                initialRouteName="Viewed"
+                initialRouteName={'Viewed'}
                 screenOptions={{
                     tabBarActiveTintColor: '#6200EE',
                     tabBarInactiveTintColor: '#AAA',

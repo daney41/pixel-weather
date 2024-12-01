@@ -6,9 +6,12 @@ import ErrorMessage from '@/components/ErrorMessage';
 import { ActivityIndicator } from 'react-native';
 import * as ColorScheme from '@/constants/ColorScheme';
 import { useRouter } from 'expo-router';
+import * as RN from 'react-native';
 
 export default function ViewedScreen() {
-    const { data, likedPosts, reportedPosts, selfPosts, refreshing, loading, error, handleToggleLike, handleDeletePost, handleReportPost, fetchPosts, fetchSelfPosts, fetchLikedPosts, fetchReportedPosts } = usePosts('/view', true);  // includeSelfPosts is true
+    const { data, likedPosts, reportedPosts, selfPosts, refreshing, loading, error,
+        handleToggleLike, handleDeletePost, handleReportPost, fetchPosts, fetchSelfPosts,
+        fetchLikedPosts, fetchReportedPosts } = usePosts('/view', true); // includeSelfPosts is true
     const router = useRouter();
 
     const onRefresh = useCallback(() => {
@@ -19,7 +22,12 @@ export default function ViewedScreen() {
     }, []);
 
     if (loading) {
-        return <GradientTheme><ActivityIndicator size="large" color={ColorScheme.BTN_BACKGROUND} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} /></GradientTheme>;
+        return <GradientTheme>
+            <ActivityIndicator
+                size="large"
+                color={ColorScheme.BTN_BACKGROUND}
+                style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} />
+            </GradientTheme>;
     }
 
     if (error) {
@@ -41,6 +49,9 @@ export default function ViewedScreen() {
                 router={router}
                 section='view'
             />
+            {/*<RN.Text style={{color: 'grey'}} onPress={() => RN.Linking.openURL('https://wallpapers.com/png/open-hand-gesture-emoji-x6a7if3pzucpm0v8.html')}>*/}
+            {/*    Wallpaper by se224340 on Wallpapers.com*/}
+            {/*</RN.Text>*/}
         </GradientTheme>
     );
 }

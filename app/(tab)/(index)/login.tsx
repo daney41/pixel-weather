@@ -41,7 +41,10 @@ export default function LogInScreen() {
             <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
                 <GradientTheme>
                     <View style={styles.container}>
-                        <TouchableOpacity style={{marginBottom: '3%', alignSelf: 'flex-start',}} onPress={() => router.back()}>
+                        <TouchableOpacity
+                            style={{marginBottom: '3%', alignSelf: 'flex-start',}}
+                            onPress={() => router.back()}
+                        >
                             <Text style={styles.backButton}><FontAwesome6 size={28} name="arrow-left"/></Text>
                         </TouchableOpacity>
                         <Text style={styles.title}>Log In</Text>
@@ -68,12 +71,17 @@ export default function LogInScreen() {
                                     onSubmitEditing={() => handleLogIn()}
                                 />
 
-                                {/* 測試按鈕 */}
+                                {/* Login in button */}
                                 <TouchableOpacity style={styles.loginButton} onPress={handleLogIn}>
                                     <Text style={styles.loginButtonText}>Log in</Text>
                                 </TouchableOpacity>
 
-                                <Text style={styles.forgotPasswordText} onPress={() => router.push('')}>Forgot password?</Text>
+                                <Text
+                                    style={styles.forgotPasswordText}
+                                    onPress={() => router.push('')}
+                                >
+                                    Forgot password?
+                                </Text>
                                 <Text style={styles.linkText} onPress={() => router.push('/')}>
                                     Don't have an account? Sign Up
                                 </Text>

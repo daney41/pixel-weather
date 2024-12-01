@@ -43,7 +43,7 @@ export default function AddAlertLocation() {
             if (response.status === 201) {
                 Alert.alert('Success', 'Suburb alert added successfully.');
                 const newLocation = { id: data.data.id, suburb_name: data.suburb_name };
-                // Handle successful creation, e.g., navigate back or update UI
+                // Handle successful creation
                 router.push({
                     pathname: '/alert', // The path to the Alerts screen
                     params: { newLocation }, // Pass the new alert data as params

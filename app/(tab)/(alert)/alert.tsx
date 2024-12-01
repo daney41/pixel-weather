@@ -1,6 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { TouchableOpacity, View, Text, Alert, StyleSheet, ScrollView, ActivityIndicator, Button, RefreshControl } from 'react-native';
-import { DeleteAlertTypeButton, DeleteAlertAreaButton, DeleteAlertTimingButton } from '@/components/DeleteButtons';
+import {
+    TouchableOpacity, View, Text, Alert, StyleSheet, ScrollView, ActivityIndicator, Button,
+    RefreshControl, Linking, Platform
+} from 'react-native';
+import {
+    DeleteAlertTypeButton, DeleteAlertAreaButton,
+    DeleteAlertTimingButton
+} from '@/components/DeleteButtons';
 import * as ColorScheme from '@/constants/ColorScheme';
 import * as Mappings from '@/constants/Mappings';
 import GradientTheme from '@/components/GradientTheme';
@@ -12,36 +18,34 @@ import TimingBar from '@/components/TimingBar';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/components/accAuth';
 import { API_LINK } from '@/constants/API_link';
+import * as Notifications from 'expo-notifications';
+import { useNavigation } from '@react-navigation/native';
 
 // Main screen
 export default function AlertsScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
+    const { userToken, isLoggedIn } = useAuth(); // log in state
+
     const newAlert = router.params?.newAlert; // Safely check for newAlert
     const newLocation = router.params?.newLocation; // Safely check for newAlert
     const newAlertTiming = router.params?.newAlertTiming; // Safely check for newAlert
-    const [loading, setLoading] = useState(true);
-    const [editingSection, setEditingSection] = useState(null); // Track the section being edited
+
+    const [loading, setLoading] = useState(true); // Loading screen use state
     const [error, setError] = useState(null); // error use state
+    const [refreshing, setRefreshing] = useState(false); // Track refreshing state
+
+    const [editingSection, setEditingSection] = useState(null); // Track the section being edited
     const [weatherAlerts, setWeatherAlerts] = useState([]); // alert weather types use state
     const [alertLocations, setAlertLocations] = useState([]); // alert location use state
     const [alertTiming, setAlertTiming] = useState([]); // alert timing use state
-    const { userToken, isLoggedIn } = useAuth(); // log in state
     const [wholeDayTiming, setWholeDayTiming] = useState([]); // storing whole day timing bar
-    const [refreshing, setRefreshing] = useState(false); // Track refreshing state
+    const [permissionStatus, setPermissionStatus] = useState(null); // Track notification permission
 
-    useEffect(() => {
-        if (newAlert) {
-            setWeatherAlerts((prevAlerts) => [...prevAlerts, newAlert]); // Add the new alert to the list
-        }
-        if (newLocation) {
-            setAlertLocations((prevLocations) => [...prevLocations, newLocation]);
-        }
-        if (newAlertTiming) {
-            setAlertTiming((prevTimings) => [...prevTimings, newAlertTiming]);
-        }
-    }, [newAlert, newLocation, newAlertTiming]);
-
-    // Generalized fetch function
+    // Generalized fetch function to retrieve data from a given API.
+    // Parameters:
+    // - url: The API endpoint to fetch data from.
+    // - setState: State setter function to update the corresponding state.
     const fetchData = async (url, setState) => {
         try {
             const response = await fetch(url, {
@@ -51,24 +55,179 @@ export default function AlertsScreen() {
                     'Content-Type': 'application/json',
                 },
             });
+
+            // If the response is successful, parse the JSON and update the state.
             if (response.ok) {
                 const jsonResponse = await response.json();
-                console.log(JSON.stringify(jsonResponse));
                 setState(jsonResponse.data);
-                setLoading(false);
             } else {
                 throw new Error('Failed to fetch data.');
             }
         } catch (error) {
+            // Update error state and stop loading in case of any errors.
             setError(error.message);
+        } finally {
+            // Ensure loading is disabled regardless of success or error.
             setLoading(false);
+        }
+    };
+
+    // Toggle edit mode for a specific section
+    const toggleEditMode = (section) => {
+        if (editingSection === section) {
+            setEditingSection(null); // Exit edit mode for this section
+        } else {
+            setEditingSection(section); // Enter edit mode for this section
+        }
+    };
+
+    // Refresh the screen by replacing it with itself
+    const onRefresh = useCallback(() => {
+        navigation.replace('alert');
+    }, [navigation]);
+
+    // Open the app settings based on the platform
+    const openAppSettings = () => {
+        if (Platform.OS === 'ios') {
+            Linking.openURL('app-settings:');
+        } else {
+            Linking.openSettings();
+        }
+    };
+
+    // Toggle active alert timing
+    const toggleTiming = async (item) => {
+
+        // Update a specific timing through API calls
+        const updateTiming = async (timing, isWholeDayTiming) => {
+            try {
+                const response = await fetch(`${API_LINK}/user_alert_time`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(timing),
+                });
+
+                if (response.ok) {
+                    const updatedIsActive = timing.is_active;
+
+                    // Update the state locally based on whether it's a whole-day timing or not
+                    if (!isWholeDayTiming) {
+                        setAlertTiming(prevTimings =>
+                            prevTimings.map(alert =>
+                                alert.id === timing.id ?
+                                    { ...alert, is_active: updatedIsActive } : alert
+                            )
+                        );
+                    } else {
+                        setWholeDayTiming(prevTimings =>
+                            prevTimings.map(alert => ({ ...alert, is_active: updatedIsActive }))
+                        );
+                    }
+                } else {
+                    // Handle errors
+                    const errorResponse = await response.json();
+                    Alert.alert('Error', errorResponse.error || 'An error occurred');
+                }
+            } catch (error) {
+                Alert.alert('Error', 'Failed to connect to the server. Please try again.');
+            }
+        };
+
+        // Function to update all timings via the API
+        const updateAllTimings = async (updatedTimings) => {
+            try {
+                // Send an API request for each timing in updatedTimings
+                await Promise.all(
+                    updatedTimings.map(async (timing) => {
+                        const requestBody = {
+                            id: timing.id,
+                            start_time: timing.start_time,
+                            end_time: timing.end_time,
+                            is_active: timing.is_active
+                        };
+
+                        const response = await fetch(`${API_LINK}/user_alert_time`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${userToken}`,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(requestBody),
+                        });
+
+                        // Handle each response
+                        if (!response.ok) {
+                            const errorResponse = await response.json();
+                            console.error(`Failed to update timing for id: ${timing.id}`,
+                                errorResponse);
+                        }
+                    })
+                );
+                console.log('All timings have been updated successfully.');
+            } catch (error) {
+                console.error('Failed to update timings:', error);
+                Alert.alert('Error', 'Failed to update alert timings. Please try again.');
+            }
+        };
+
+        // Check if the item being toggled is the whole-day timing
+        const isWholeDayTiming = item.start_time === "00:00:00" && item.end_time === "23:59:59";
+
+        if (isWholeDayTiming) {
+            // Deactivate all other timings
+            let updatedTimings = alertTiming.map(timing => ({
+                ...timing,
+                is_active: false,
+            }));
+
+            // Add the whole-day timing itself to the updatedTimings array
+            updatedTimings = [...updatedTimings, { ...item, is_active: !item.is_active }];
+
+            // Update all timings in the database
+            await updateAllTimings(updatedTimings);
+
+            // Update the state locally after successful update
+            setAlertTiming(updatedTimings);
+        } else {
+            // If a non-whole-day timing is toggled on, deactivate the whole day timing
+            const updatedTimingItem = { ...item, is_active: !item.is_active };
+            updateTiming(updatedTimingItem, false);
+
+            if (wholeDayTiming.length > 0) {
+                // Ensure you're working with an array of whole day timings
+                const updatedWholeDayTiming = wholeDayTiming[0];
+
+                const updatedWholeDay = {
+                    ...updatedWholeDayTiming,
+                    is_active: false // Deactivate whole day timing
+                };
+
+                updateTiming(updatedWholeDay, true);
+            }
+        }
+    };
+
+    // Check Notification Permissions
+    const checkNotificationPermissions = async () => {
+        try {
+            const { status } = await Notifications.getPermissionsAsync();
+            console.log('Current permission status:', status); // Debugging log
+            setPermissionStatus(status);  // Update permission status
+        } catch (error) {
+            console.error('Error checking notification permissions:', error); // Log any errors
+        } finally {
+            setLoading(false); // Stop loading
         }
     };
 
     // Render Alert Type Buttons with or without delete button based on edit mode
     function renderAlertTypeButtons(data, isEditMode) {
         return data
-            .sort((a, b) => Mappings.WeatherNamesMapping[a.weather].localeCompare(Mappings.WeatherNamesMapping[b.weather]))
+            .sort((a, b) => Mappings.WeatherNamesMapping[a.weather]
+                .localeCompare(Mappings.WeatherNamesMapping[b.weather])) // sort alphabetically
             .map((item, index) => (
                 <View key={index} style={styles.alertButtonContainer}>
                     {isEditMode && (
@@ -93,8 +252,10 @@ export default function AlertsScreen() {
             ));
     }
 
+    // Render Alert Timing TimeBars with or without delete button based on edit mode
     function renderAlertTiming(data, isEditMode) {
         return data
+            // sort timing based on starting time
             .sort((a, b) => a.start_time.localeCompare(b.start_time))
             .map((item, index) => (
                 <View key={index} style={styles.alertTimingContainer}>
@@ -111,147 +272,34 @@ export default function AlertsScreen() {
             ));
     }
 
-// Toggle active alert timing
-const toggleTiming = async (item) => {
-
-    // Function to update all timings via the API
-    const updateAllTimings = async (updatedTimings) => {
-        try {
-            // Send an API request for each timing in updatedTimings
-            await Promise.all(
-                updatedTimings.map(async (timing) => {
-                    const requestBody = {
-                        id: timing.id,
-                        start_time: timing.start_time,
-                        end_time: timing.end_time,
-                        is_active: timing.is_active // Use the updated is_active value
-                    };
-
-                    const response = await fetch(`${API_LINK}/user_alert_time`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${userToken}`,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(requestBody),
-                    });
-
-                    // Handle each response
-                    if (!response.ok) {
-                        const errorResponse = await response.json();
-                        console.error(`Failed to update timing for id: ${timing.id}`, errorResponse);
-                    }
-                })
-            );
-            console.log('All timings have been updated successfully.');
-        } catch (error) {
-            console.error('Failed to update timings:', error);
-            Alert.alert('Error', 'Failed to update alert timings. Please try again.');
+    useEffect(() => {
+        if (newAlert) {
+            // Add the new alert to the list for instant update
+            setWeatherAlerts((prevAlerts) => [...prevAlerts, newAlert]);
         }
-    };
-
-    // Function to update a specific timing
-    const updateTiming = async (timing, isWholeDayTiming) => {
-        try {
-            const response = await fetch(`${API_LINK}/user_alert_time`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${userToken}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(timing),
-            });
-
-            if (response.ok) {
-                const updatedIsActive = timing.is_active;
-
-                // Update the state locally based on whether it's a whole-day timing or not
-                if (!isWholeDayTiming) {
-                    setAlertTiming(prevTimings =>
-                        prevTimings.map(alert =>
-                            alert.id === timing.id ? { ...alert, is_active: updatedIsActive } : alert
-                        )
-                    );
-                } else {
-                    setWholeDayTiming(prevTimings =>
-                        prevTimings.map(alert => ({ ...alert, is_active: updatedIsActive }))
-                    );
-                }
-            } else {
-                // Handle errors
-                const errorResponse = await response.json();
-                Alert.alert('Error', errorResponse.error || 'An error occurred');
-            }
-        } catch (error) {
-            Alert.alert('Error', 'Failed to connect to the server. Please try again.');
+        if (newLocation) {
+            // Add the new location to the list for instant update
+            setAlertLocations((prevLocations) => [...prevLocations, newLocation]);
         }
-    };
-
-    // Check if the item being toggled is the whole-day timing
-    const isWholeDayTiming = item.start_time === "00:00:00" && item.end_time === "23:59:59";
-
-    if (isWholeDayTiming) {
-        // Deactivate all other timings
-        let updatedTimings = alertTiming.map(timing => ({
-            ...timing,
-            is_active: false, // Deactivate all other timings
-        }));
-
-        // Add the whole-day timing itself to the updatedTimings array
-        updatedTimings = [...updatedTimings, { ...item, is_active: !item.is_active }];
-
-        // Update all timings in the database
-        await updateAllTimings(updatedTimings);
-
-        // Update the state locally after successful update
-        setAlertTiming(updatedTimings);
-    } else {
-        // If a non-whole-day timing is toggled on, deactivate the whole day timing
-        const updatedTimingItem = { ...item, is_active: !item.is_active };
-        updateTiming(updatedTimingItem, false);
-
-        if (wholeDayTiming.length > 0) {
-            // Ensure you're working with an array of whole day timings
-            const updatedWholeDayTiming = wholeDayTiming[0];  // Assuming you only have one whole day timing
-
-            const updatedWholeDay = {
-                ...updatedWholeDayTiming,
-                is_active: false // Deactivate whole day timing
-            };
-
-            updateTiming(updatedWholeDay, true);
+        if (newAlertTiming) {
+            // Add the new timing to the list for instant update
+            setAlertTiming((prevTimings) => [...prevTimings, newAlertTiming]);
         }
-    }
-};
+    }, [newAlert, newLocation, newAlertTiming]);
 
-    // Toggle edit mode for a specific section
-    const toggleEditMode = (section) => {
-        if (editingSection === section) {
-            setEditingSection(null); // Exit edit mode for this section
-        } else {
-            setEditingSection(section); // Enter edit mode for this section
-        }
-    };
-
-    // Fetch all data on refresh
-    const onRefresh = useCallback(() => {
-        setRefreshing(true); // Start refreshing
-        fetchData(`${API_LINK}/user_alert_weather`, setWeatherAlerts);
-        fetchData(`${API_LINK}/user_alert_suburb`, setAlertLocations);
-        fetchData(`${API_LINK}/user_alert_time`, setAlertTiming).finally(() => {
-            setRefreshing(false); // Stop refreshing once data is fetched
-        console.log('userToken: ' + userToken);
-        });
+    useEffect(() => {
+        // Check notification permissions on component mount
+        checkNotificationPermissions();
     }, []);
 
     useEffect(() => {
         if (userToken) {
-            // Re-fetch data when the token changes (after login/logout)
+            // Re-fetch data when the token changes and permission status
             fetchData(`${API_LINK}/user_alert_weather`, setWeatherAlerts);
             fetchData(`${API_LINK}/user_alert_suburb`, setAlertLocations);
             fetchData(`${API_LINK}/user_alert_time`, setAlertTiming);
         }
-    }, [userToken]);  // Add userToken as a dependency
+    }, [userToken, permissionStatus]);
 
     useEffect(() => {
         if (alertTiming.length > 0) {
@@ -273,17 +321,14 @@ const toggleTiming = async (item) => {
         }
     }, [alertTiming]);
 
-    // loading screen if still fetching the data from database
-    if (loading) {
-        return <ActivityIndicator size="large" color={ColorScheme.BTN_BACKGROUND} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', }} />;
-    }
-
     // return log in message if user is not logged in
     if (!isLoggedIn) {
         return (
             <GradientTheme>
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', }}>
-                    <Text style={{ fontSize: 15, marginBottom: '3%' }}>Please log in to customize your weather alert</Text>
+                    <Text style={{ fontSize: 15, marginBottom: '3%' }}>
+                        Please log in to customize your weather alert
+                    </Text>
                     <TouchableOpacity style={styles.popUpBtn} onPress={() => router.push('/login')}>
                         <Text style={styles.popUpBtnText}>Sign up or log in</Text>
                     </TouchableOpacity>
@@ -292,10 +337,40 @@ const toggleTiming = async (item) => {
         );
     }
 
+    if (permissionStatus !== 'granted') {
+        return (
+            <GradientTheme>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ScrollView
+                        contentContainerStyle={{
+                            flexGrow: 1,
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                        }} // Use contentContainerStyle
+                        refreshControl={
+                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                        }
+                    >
+                        <Text style={{ textAlign: 'center', fontSize: 15, margin: '3%' }}>
+                            You need to enable notifications to customize your weather alerts.
+                        </Text>
+                        <Button title="Go to Setting" onPress={openAppSettings} />
+                    </ScrollView>
+                </View>
+            </GradientTheme>
+        );
+    }
+
+    // loading screen if still fetching the data from database
+    if (loading) {
+        return <ActivityIndicator size="large" color={ColorScheme.BTN_BACKGROUND}
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center', }} />;
+    }
+
     // return error message if any errors occurred when rendering the screen
     if (error) {
         return (
-            <ErrorMessage error={error} onRefresh={onRefresh} />
+            <ErrorMessage error={error} onRetry={onRefresh} />
         );
     }
 
@@ -318,7 +393,14 @@ const toggleTiming = async (item) => {
 
                     </View>
                     <View style={styles.buttonContainer}>
-                        {renderAlertTypeButtons(weatherAlerts, editingSection === 'alertType')}
+                        {weatherAlerts && weatherAlerts.length > 0 ? (
+                            renderAlertTypeButtons(weatherAlerts, editingSection === 'alertType')
+                        ) : (
+                            <Text style={styles.emptyMessage}>
+                                No active alert weather types {"\n"}
+                                Add a alert weather type through "+"
+                            </Text>
+                        )}
                     </View>
                 </View>
 
@@ -332,7 +414,14 @@ const toggleTiming = async (item) => {
                         </View>
                     </View>
                     <View style={styles.buttonContainer}>
-                        {renderAlertAreaButtons(alertLocations, editingSection === 'alertArea')}
+                        {alertLocations && alertLocations.length > 0 ? (
+                            renderAlertAreaButtons(alertLocations, editingSection === 'alertArea')
+                        ) : (
+                            <Text style={styles.emptyMessage}>
+                                No active alert areas {"\n"}
+                                Add an alert location through "+"
+                            </Text>
+                        )}
                     </View>
                 </View>
 
@@ -346,7 +435,7 @@ const toggleTiming = async (item) => {
                         </View>
                     </View>
                     <View style={styles.timingBarContainer}>
-                        {renderAlertTiming(wholeDayTiming)}
+                        {renderAlertTiming(wholeDayTiming, editingSection === 'alertTiming')}
                         {renderAlertTiming(alertTiming, editingSection === 'alertTiming')}
                     </View>
                 </View>
@@ -362,9 +451,9 @@ const styles = StyleSheet.create({
         marginTop: '15%',
     },
     headerContainer: {
-        flexDirection: 'row', // Puts the text and icon in a row
-        justifyContent: 'space-between', // Aligns text to the left and icon to the right
-        alignItems: 'center', // Vertically centers the text and icon
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: '2%',
         width: '100%',
     },
@@ -400,28 +489,6 @@ const styles = StyleSheet.create({
         margin: '3%',
         borderRadius: 10,
     },
-    popUpHeader: {
-        fontWeight: 'bold',
-        fontSize: 15,
-        marginVertical: '3%',
-    },
-    popUpText: {
-        color: ColorScheme.BTN_BACKGROUND,
-        marginBottom: '5%',
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: 'gray',
-        padding: '4%',
-        borderRadius: 5,
-        marginBottom: '8%',
-        backgroundColor: 'white',
-    },
-    popUpBtnContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginVertical: '5%',
-    },
     popUpBtn: {
         backgroundColor: ColorScheme.BTN_BACKGROUND,
         padding: '4%',
@@ -431,5 +498,12 @@ const styles = StyleSheet.create({
     popUpBtnText: {
         color: 'white',
         textAlign: 'center',
-    }
+    },
+    emptyMessage: {
+        textAlign: 'center',
+        width: '100%',
+        marginBottom: '3%',
+        color: 'gray',
+        fontSize: 16,
+    },
 });

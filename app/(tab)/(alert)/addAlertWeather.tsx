@@ -3,7 +3,7 @@ import { TouchableOpacity, View, Text, Alert, StyleSheet, Platform } from 'react
 import GradientTheme from '@/components/GradientTheme';
 import * as ColorScheme from '@/constants/ColorScheme';
 import * as Mappings from '@/constants/Mappings';
-import RNPickerSelect from 'react-native-picker-select';
+import ModalSelector from 'react-native-modal-selector';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/components/accAuth'
 import { API_LINK } from '@/constants/API_link';
@@ -12,6 +12,7 @@ export default function AddAlertWeather() {
 
     const router = useRouter();
     const [selectedValue, setSelectedValue] = useState(null);
+    const [selectedLabel, setSelectedLabel] = useState("Select an alert weather type");
     const { userToken } = useAuth();
 
     // Placeholder for the picker
@@ -23,8 +24,8 @@ export default function AddAlertWeather() {
     // Options for the weather types
     const options = [];
 
-    Object.entries(Mappings.WeatherIdMapping).forEach(([label, value]) => {
-        options.push({ label: label, value: value });
+    Object.entries(Mappings.WeatherIdMapping).forEach(([label, value], index) => {
+        options.push({ key: value, label: label, value: value }); // Use 'value' as a unique key
     });
 
     // Function to handle adding the alert weather type
@@ -46,7 +47,7 @@ export default function AddAlertWeather() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${userToken}` // Token required in the header
+                    'Authorization': `Bearer ${userToken}`
                 },
                 body: JSON.stringify(requestBody)
             });
@@ -87,12 +88,15 @@ export default function AddAlertWeather() {
                     <Text style={styles.popUpHeader}>Add Alert Weather Type</Text>
                     <Text style={styles.popUpText}>Select alert type</Text>
                     <View style={styles.pickerContainer}>
-                        <RNPickerSelect
-                            placeholder={placeholder}
-                            items={options}
-                            onValueChange={(value) => setSelectedValue(value)}
-                            value={selectedValue}
-                            style={styles.RNPicker}
+                        <ModalSelector
+                            data={options}
+                            initValue={selectedLabel}
+                            onChange={(option) => {
+                                setSelectedValue(option.value); // Save selected value
+                                setSelectedLabel(option.label); // Update label for display
+                            }}
+                            initValueTextStyle={{ color: 'black' }}
+                            selectTextStyle={{ color: 'black' }}
                         />
                     </View>
                     <View style={styles.popUpBtnContainer}>
@@ -143,7 +147,6 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         width: '100%',
         marginBottom: '10%',
-        padding: Platform.OS === 'ios' ? '5%' : 0,
     },
     popUpBtnContainer: {
         flexDirection: 'row',

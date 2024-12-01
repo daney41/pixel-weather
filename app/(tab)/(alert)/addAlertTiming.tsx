@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform, ScrollView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import GradientTheme from '@/components/GradientTheme';
 import * as ColorScheme from '@/constants/ColorScheme';
@@ -41,7 +41,7 @@ export default function AddTimingScreen({ navigation }) {
         const requestBody = {
             start_time: startTimeFormatted,
             end_time: endTimeFormatted,
-            is_active: true, // Assuming the new timing should be active by default
+            is_active: false,
         };
 
         try {
@@ -86,7 +86,7 @@ export default function AddTimingScreen({ navigation }) {
 
     return (
         <GradientTheme>
-            <View style={styles.container}>
+            <ScrollView contentContainerStyle={styles.container}>
                 <View style={styles.card}>
                     <Text style={styles.title}>Add Alert Timing</Text>
 
@@ -99,7 +99,7 @@ export default function AddTimingScreen({ navigation }) {
                             value={startTime}
                             mode="time"
                             is24Hour={true}
-                            display="default"
+                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                             onChange={onChangeStart}
                         />
                     )}
@@ -118,7 +118,7 @@ export default function AddTimingScreen({ navigation }) {
                             value={endTime}
                             mode="time"
                             is24Hour={true}
-                            display="default"
+                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                             onChange={onChangeEnd}
                         />
                     )}
@@ -137,7 +137,7 @@ export default function AddTimingScreen({ navigation }) {
                         </TouchableOpacity>
                     </View>
                 </View>
-            </View>
+            </ScrollView>
         </GradientTheme>
     );
 };

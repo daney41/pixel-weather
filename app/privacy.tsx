@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
         paddingBottom: '15%',
     },
     header: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
     },
     backButton: {

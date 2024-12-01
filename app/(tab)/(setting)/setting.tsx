@@ -18,10 +18,8 @@ export default function SettingScreen() {
     const { isLoggedIn, login, logout ,userToken} = useAuth();
     const filteredData = data.filter((item) => (isLoggedIn || !item.requireLogin));
 
-
     const handlePress = () => {
         if (isLoggedIn) {
-            // 當前為已登入狀態
             Alert.alert(
                 'Warning',
                 "You're about to log out",
@@ -37,8 +35,8 @@ export default function SettingScreen() {
                 { cancelable: true }
             );
         } else {
-            // 當前為未登入狀態，跳轉到登入畫面
-            router.push('/login'); // 根據你的路由結構，這裡設定跳轉路徑
+            // Back to login page if not yet logged in
+            router.push('/login');
         }
     };
 
@@ -78,7 +76,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: 'white',
         textAlign: 'center',
-        backgroundColor: '#DABFFF', // Match the header color in your design
+        backgroundColor: '#DABFFF',
         paddingVertical: 10,
         marginVertical: 20,
         borderRadius: 10,

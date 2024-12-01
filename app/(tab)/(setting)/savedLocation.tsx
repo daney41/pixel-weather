@@ -3,42 +3,15 @@ import {View, Text, StyleSheet, TouchableOpacity, FlatList, Alert} from 'react-n
 import GradientTheme from '@/components/GradientTheme';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import {API_LINK} from "@/constants/API_link";
 import {useAuth} from "@/components/accAuth";
-
-// simulation of data from saved suburb API calls
-const data = {
-  'message': 'Data retrieved successfully',
-  'data': [
-    {
-      'id': 1,
-      'suburb_id': 1,
-      'label': 'Home',
-      'suburb_name': 'Suburb 1',
-      'post_code': 4000,
-      'latitude': -33.8688,
-      'longitude': 151.2093,
-      'state_code': 'QLD'
-    },
-    {
-      'id': 14,
-      'suburb_id': 2,
-      'label': 'Work',
-      'suburb_name': 'Suburb 2',
-      'post_code': 4067,
-      'latitude': -37.8136,
-      'longitude': 144.9631,
-      'state_code': 'QLD'
-    }
-  ]
-};
+import {API_LINK} from "@/constants/API_link";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 export default function SavedLocationScreen() {
     const router = useRouter();
     const navigation = useNavigation();
-    const { isLoggedIn, userToken } = useAuth(); // 使用 `useAuth` 取得登入狀態
+    const { isLoggedIn, userToken } = useAuth();
     const [savedLocations, setSavedLocations] = useState([]);
-
 
     const fetchSavedLocations = async () => {
         try {
@@ -52,7 +25,8 @@ export default function SavedLocationScreen() {
 
             if (response.ok) {
                 const result = await response.json();
-                setSavedLocations(result.data);  // 將取得的地點設定到狀態中
+                console.log(result.data);
+                setSavedLocations(result.data);
             } else {
                 Alert.alert('Error', 'Failed to fetch saved locations.');
             }
@@ -69,9 +43,12 @@ export default function SavedLocationScreen() {
     // Function to render each suburb item in the FlatList
     const renderSuburbItem = ({ item }) => (
         <View style={styles.locationContainer}>
-            <Text style={styles.locationText}>{item.suburb_name}</Text>
-            <TouchableOpacity onPress={() => router.push(`/editLocation/${item.id}`)}>
-                <Text style={styles.editIcon}>✏️</Text>
+            <View>
+                <Text style={styles.locationTitle}>{item.label}</Text>
+                <Text style={styles.locationText}>{item.suburb_name}, {item.post_code}</Text>
+            </View>
+            <TouchableOpacity>
+                <Text style={styles.editIcon}><FontAwesome6 size={20} name="pencil"/></Text>
             </TouchableOpacity>
         </View>
     );
@@ -97,7 +74,7 @@ export default function SavedLocationScreen() {
                     />
 
                     {/* 新增地點按鈕 */}
-                    <TouchableOpacity style={styles.addLocationButton} onPress={() => router.push('/addLocation')}>
+                    <TouchableOpacity style={styles.addLocationButton}>
                         <Text style={styles.addLocationText}>Add Location</Text>
                         <Text style={styles.addIcon}>+</Text>
                     </TouchableOpacity>
@@ -118,14 +95,6 @@ const styles = StyleSheet.create({
         padding: '7%',
         borderRadius: 10,
     },
-    headerText: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-    },
-    list: {
-        marginBottom: 20,
-    },
     backButton: {
         fontSize: 40,
         color: 'black',
@@ -136,11 +105,12 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: 15,
+        margin:5,
         borderBottomWidth: 1,
         borderBottomColor: '#e0e0e0',
     },
     locationText: {
-        fontSize: 16,
+        fontSize: 13,
         color: 'black',
     },
     editIcon: {
@@ -165,4 +135,10 @@ const styles = StyleSheet.create({
         fontSize: 24,
         color: 'black',
     },
+    locationTitle: {
+        fontSize: 24,
+        color: 'black',
+        marginBottom: 5,
+    }
+
 });

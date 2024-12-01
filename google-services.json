@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "650340353965",
+    "project_id": "pixel-weather-yakiniku",
+    "storage_bucket": "pixel-weather-yakiniku.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:650340353965:android:39445c3c506bb8e8d2c324",
+        "android_client_info": {
+          "package_name": "com.jaccup.pixelweather"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWhr2d5xAuTzA3WMvswIBS8jmROrIndHA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

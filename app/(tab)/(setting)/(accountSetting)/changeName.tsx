@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {TouchableOpacity, View, Text, StyleSheet, TextInput, Alert} from 'react-native';
 import GradientTheme from '@/components/GradientTheme';
-import { useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '@/components/accAuth';
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -9,9 +8,8 @@ import {handleUpdateRequest} from "@/components/handleUpdate";
 import {email} from "@sideway/address";
 
 export default function ChangeNameScreen() {
-    const { login, userData, userToken } = useAuth();
+    const { userData, setUserData, userToken } = useAuth();
     const [username, setUserName] = useState(userData?.username || '');
-    const router = useRouter();
     const navigation = useNavigation();
 
     const handleChangeUsername = async() => {
@@ -19,22 +17,22 @@ export default function ChangeNameScreen() {
             Alert.alert('Error', 'Please enter your new username.');
             return;
         }
-        const requestBody = { username: username};
+        const requestBody = { username: username };
         console.log(requestBody);
         const response = await handleUpdateRequest('/handle_update_username', 'PATCH', requestBody, userToken);
 
         if (response) {
-            // 合併更新的 username 到現有的 userData 中，而不覆蓋其他屬性
-            const updatedUserData = { ...userData, username: response.data.username };
-            login(userToken, updatedUserData); // 使用更新後的完整 userData
-            navigation.goBack(); // 返回到 AccountSetting 頁面
+            // Update context with new username
+            setUserData((prevData) => ({ ...prevData, username: username }));
+            // Redirect to Account Setting and refresh
+            navigation.replace('(accountSetting)/accountSetting');
         }
     };
 
     return (
         <GradientTheme>
             <View style={styles.container}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
+                <TouchableOpacity onPress={() => navigation.navigate('(accountSetting)/accountSetting')}>
                     <Text style={styles.backButton}><FontAwesome6 size={28} name="arrow-left"/></Text>
                 </TouchableOpacity>
                 <View style={styles.card}>
@@ -47,7 +45,10 @@ export default function ChangeNameScreen() {
                         placeholder="Enter your name."
                     />
                     <View style={styles.buttonContainer}>
-                        <TouchableOpacity onPress={() => router.back()} style={styles.cancelButton}>
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate('(accountSetting)/accountSetting')}
+                            style={styles.cancelButton}
+                        >
                             <Text style={styles.cancelText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={handleChangeUsername} style={styles.saveButton}>

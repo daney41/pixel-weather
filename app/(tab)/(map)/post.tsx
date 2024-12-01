@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { TouchableOpacity, View, Text, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
 import GradientTheme from '@/components/GradientTheme';
 import * as ColorScheme from '@/constants/ColorScheme';
-import {useLocalSearchParams, useRouter} from 'expo-router';
+import { useRouter } from 'expo-router';
 import DropDownPicker from 'react-native-dropdown-picker';
 import * as Location from 'expo-location';
 
 export default function NewPostScreen() {
+
+    // useStat for setting the post weather condition
     const [weather, setWeather] = useState(null);
+    // useState for opening up the dropdown picker
     const [open, setOpen] = useState(false);
+    // Options for dropdown picker
     const [items, setItems] = useState([
         { label: 'Clear Sky', value: 'Clear Sky' },
         { label: 'Rainy', value: 'Rainy' },
@@ -20,51 +24,51 @@ export default function NewPostScreen() {
         { label: 'Hail', value: 'Hail' },
         { label: 'Hot', value: 'Hot' },
         { label: 'Cold', value: 'Cold' },
+        { label: 'High UV', value: 'High UV' },
     ]);
-
+    // Expo router for navigation
     const router = useRouter();
+    // useState storing comment
     const [preparationText, setPreparationText] = useState('');
+    // useState for storing current location for posting posts
     const [location, setLocation] = useState(null);
-    const [loading, setLoading] = useState(true);  // New loading state
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const getPermissionAndLocation = async () => {
+        (async () => {
             try {
-                // 檢查是否已獲得權限
-                const { status } = await Location.getForegroundPermissionsAsync();
+                // Request location permission
+                let { status } = await Location.requestForegroundPermissionsAsync();
                 if (status !== 'granted') {
-                    // 如果沒有授權，請求權限
-                    const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
-                    if (newStatus !== 'granted') {
-                        Alert.alert('Permission denied', 'Location permission is required to use this feature.');
-                        setLoading(false);
-                        return;
-                    }
+                    alert('Permission to access location was denied');
+                    setLoading(false);  // Stop loading and return
+                    return;
                 }
 
-                // 已授權，取得目前位置
-                const currentLocation = await Location.getCurrentPositionAsync({
-                    accuracy: Location.Accuracy.Balanced,
-                });
-                setLocation(currentLocation);
+                // Get the user's current location
+                let location = await Location.getCurrentPositionAsync({});
+                setLocation(location);
                 setLoading(false);
             } catch (error) {
-                console.error('Failed to get location:', error);
+                console.error("Error fetching location:", error);
                 setLoading(false);
             }
-        };
-
-        getPermissionAndLocation();
+        })();
     }, []);
 
-if (loading) {
+    // Loading screen
+    if (loading) {
         return (
             <GradientTheme>
-                <ActivityIndicator size="large" color={ColorScheme.BTN_BACKGROUND} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} />
+                <ActivityIndicator
+                    size="large"
+                    color={ColorScheme.BTN_BACKGROUND}
+                    style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} />
             </GradientTheme>
         );
     }
 
+    // Function to push to the post confirm page with post information
     const handleNextPress = () => {
         if (weather) {
             // Navigate to postConfirm with query params

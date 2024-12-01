@@ -4,19 +4,28 @@
     "slug": "pixel-weather",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app_icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/splash.png",
+      "image": "./assets/images/welcome_view.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
       "config": {
-        "googleMapsApiKey": "AIzaSyDKx_7PKQx3xYx1OSxJZ1eamhh4rRIv0AU"
-      }
+        "googleMapsApiKey": ""
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs to access your location.",
+        "NSLocationAlwaysUsageDescription": "This app needs to access your location in the background.",
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ]
+      },
+      "bundleIdentifier": "com.yakiniku.pixelweather"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,14 +34,19 @@
       },
       "package": "com.jaccup.pixelweather",
       "permissions": [
+        "ACCESS_BACKGROUND_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "FOREGROUND_SERVICE",
+        "POST_NOTIFICATIONS"
       ],
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyDKx_7PKQx3xYx1OSxJZ1eamhh4rRIv0AU"
+          "apiKey": ""
         }
-      }
+      },
+      "googleServicesFile": "./google-services.json",
+      "useNextNotificationsApi": true
     },
     "web": {
       "bundler": "metro",
@@ -55,6 +69,7 @@
       "eas": {
         "projectId": "be9a59be-dbe2-4842-a970-d731b93f51c1"
       }
-    }
+    },
+    "privacy": "public"
   }
 }

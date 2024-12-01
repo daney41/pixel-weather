@@ -6,8 +6,6 @@ import * as Mappings from '@/constants/Mappings';
 import * as ColorScheme from '@/constants/ColorScheme';
 import { useAuth } from '@/components/accAuth'
 import { API_LINK } from '@/constants/API_link';
-import {handleReportPost} from "@/constants/mapUtils";
-import * as RN from "react-native";
 
 // Helper function to format the time difference
 const formatTimeDifference = (postedTime) => {
@@ -44,15 +42,13 @@ export default function PostTemplate({ item, isSelfPost, onDelete, onReport, isR
     const [reportComment, setReportComment] = useState('');  // State to store the report comment
     const { userToken } = useAuth();
     const convertedWeather = Mappings.WeatherNamesMapping[item.weather];
+    const [localLikes, setLocalLikes] = useState(likes);  // Track local likes count
+    const [liked, setLiked] = useState(isLiked); // Whether the post is liked by the user
 
     // Use effect to synchronize local likes count with the props
     useEffect(() => {
         setLocalLikes(likes);
     }, [likes]);
-
-    // Manage local likes count and liked status in state
-    const [localLikes, setLocalLikes] = useState(likes);  // Track local likes count
-    const [liked, setLiked] = useState(isLiked); // Whether the post is liked by the user
 
     // Handle toggling the like status
     const handleToggleLike = () => {
@@ -92,38 +88,12 @@ export default function PostTemplate({ item, isSelfPost, onDelete, onReport, isR
     };
 
     // Function to handle the report submission
-    // const handleReportPost = () => {
-    //     onReport(item, reportComment, () => {
-    //         setModalVisible(false);  // Close the modal after successful submission
-    //         setReportComment('');    // Clear the comment input field
-    //     });
-    // };
-
-    const handleReportPost = async (userToken, postId, report_comment) => {
-        try{
-            const response = await fetch(`${API_LINK}/posts/report`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${userToken}`,
-                },
-                body: JSON.stringify({
-                    post_id: postId,
-                    report_comment: report_comment,
-                }),
-            })
-            const data = await response.json();
-            console.log(data);
-            if (response.status === 200) {
-            } else {
-                // 處理錯誤狀態碼
-                console.log("Error toggling like:", data.error);
-            }
-
-        } catch (error) {
-            console.error("Failed to report post:", error);
-        }
-    }
+    const handleReportPost = () => {
+        onReport(item, reportComment, () => {
+            setModalVisible(false);  // Close the modal after successful submission
+            setReportComment('');    // Clear the comment input field
+        });
+    };
 
     return (
         <View style={styles.postContainer}>
@@ -183,7 +153,9 @@ export default function PostTemplate({ item, isSelfPost, onDelete, onReport, isR
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity onPress={() => setModalVisible(true)} disabled={isReported}>
-                                <Text style={{ color: isReported ? "gray" : "blue" }}>{isReported ? "Reported" : "Report"}</Text>
+                                <Text
+                                    style={{ color: isReported ? "gray" : "blue" }}>{isReported ? "Reported" : "Report"}
+                                </Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -227,15 +199,7 @@ export default function PostTemplate({ item, isSelfPost, onDelete, onReport, isR
 
                             <TouchableOpacity
                                 style={[styles.modalButton, styles.submitButton]}
-                                onPress={async () => {
-                                    if (userToken && item.post_id && reportComment.trim()) {
-                                        await handleReportPost(userToken, item.post_id, reportComment);
-                                        setModalVisible(false);  // 報告完成後關閉 modal
-                                        setReportComment('');    // 清空報告內容
-                                    } else {
-                                        RN.Alert.alert('Error', 'Please provide a valid report comment.');
-                                    }
-                                }}
+                                onPress={handleReportPost}
                             >
                                 <Text style={styles.modalButtonText}>Submit</Text>
                             </TouchableOpacity>

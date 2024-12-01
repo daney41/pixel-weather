@@ -18,12 +18,10 @@ export default function SignUpSuccessScreen() {
 
                     <Text style={styles.successText}>Sign Up Successful!</Text>
 
-
                     <TouchableOpacity
                         style={styles.button}
                         onPress={() => router.push('/login')}
                     >
-
                         <Text style={styles.buttonText}>Sign in with new account</Text>
                     </TouchableOpacity>
                 </View>
@@ -51,7 +49,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
     },
     emojiText: {
-        fontSize: 80,  // 設置 Emoji 的大小
+        fontSize: 80,
         marginBottom: 20,
     },
     successText: {
@@ -68,7 +66,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
-        // marginTop: 20,
     },
     buttonText: {
         fontSize: 16,

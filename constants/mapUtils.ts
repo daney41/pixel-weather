@@ -1,4 +1,3 @@
-
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
@@ -7,15 +6,15 @@ import * as WeatherIcons from "@/constants/Mappings";
 import {API_LINK} from "@/constants/API_link";
 import {router} from "expo-router";
 
-const API_KEY = '9480d17e216cfcf5b44da6050c7286a4';
+const API_KEY = 'acbdc80633478d6533e96ea77d9cd3a8';
 
-// 請求位置權限
+// ask for location permission
 export const requestLocationPermission = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     return status === 'granted';
 };
 
-// 獲取當前位置
+// get the current location
 export const getCurrentLocation = async () => {
     const hasPermission = await requestLocationPermission();
     if (hasPermission) {
@@ -29,35 +28,13 @@ export const getCurrentLocation = async () => {
     }
 };
 
-export const getLocationLaLon = async (location) => {
-    try {
-        const response = await fetch(`${API_LINK}/suburbs`, {
-            method: 'GET',
-        })
-        const result = await response.json();
-        if (!location) {
-            throw new Error('Location name is missing');
-        }
-
-        const matchingData = result.data.filter(item => {
-            return item.suburb_name.toLowerCase() === location.toLowerCase()
-        });
-
-        return matchingData;
-    } catch (error) {
-        console.error('Error fetching or processing data:', error); // 顯示錯誤信息
-        return null;
-    }
-}
-// 獲取天氣資訊
+// fetch weather data
 export const fetchWeather = async (latitude: number, longitude: number) => {
     try {
         const response = await fetch(
             `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`
-            //`https://api.openweathermap.org/data/2.5/weather?q=Greenslopes&units=metric&appid=${API_KEY}`
         );
         const data = await response.json();
-        console.log('fetched data: ', data);
         return data;
     } catch (error) {
         console.error('Error fetching weather data:', error);
@@ -65,7 +42,7 @@ export const fetchWeather = async (latitude: number, longitude: number) => {
     }
 };
 
-// 獲取每小時天氣預報
+// fetch hourly forecast
 export const fetchHourlyForecast = async (latitude: number, longitude: number) => {
     try {
         const response = await fetch(
@@ -75,8 +52,8 @@ export const fetchHourlyForecast = async (latitude: number, longitude: number) =
         const forecastData = data.hourly.slice(1, 24).map((hourData, index) => {
             const weatherType = weatherIconById[hourData.weather[0].id] || 'Clear Sky';
             return {
-                time: new Date(hourData.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), // 轉換成可讀格式
-                temp: hourData.temp.toFixed(0), // 溫度
+                time: new Date(hourData.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                temp: hourData.temp.toFixed(0),
                 icon: WeatherIcons.weatherIconMap[weatherType],
             };
         });
@@ -101,16 +78,16 @@ export const handleInputChange = (text, suburb ,setSearchQuery, setFilteredSugge
     }
 };
 
-// 點選建議項目時，更新 TextInput 的值
+// update Textinput value when clicking suggestion
 export const handleSuggestionSelect = (suggestion, setSearchQuery, setShowSuggestions) => {
     setSearchQuery(suggestion);
     setShowSuggestions(false);
 };
 
-// 儲存最近搜尋
+// save recent search
 export const saveRecentSearch = async (query: string, recentSearches: string[], setRecentSearches: Function) => {
     try {
-        const updatedSearches = [query, ...recentSearches].slice(0, 5);  // 最多保存 5 個最近搜尋
+        const updatedSearches = [query, ...recentSearches].slice(0, 5);
         setRecentSearches(updatedSearches);
         await AsyncStorage.setItem('recentSearches', JSON.stringify(updatedSearches));
     } catch (error) {
@@ -118,7 +95,7 @@ export const saveRecentSearch = async (query: string, recentSearches: string[], 
     }
 };
 
-// 讀取最近搜尋
+// load recent search
 export const loadRecentSearches = async (setRecentSearches: Function) => {
     try {
         const savedSearches = await AsyncStorage.getItem('recentSearches');
@@ -130,7 +107,7 @@ export const loadRecentSearches = async (setRecentSearches: Function) => {
     }
 };
 
-// 移除某個搜尋紀錄
+// remove recent search
 export const removeSearchItem = async (index: number, recentSearches: string[], setRecentSearches: Function) => {
     try {
         const updatedSearches = recentSearches.filter((_, i) => i !== index);
@@ -141,9 +118,13 @@ export const removeSearchItem = async (index: number, recentSearches: string[], 
     }
 };
 
-export const fetchFilteredPosts = async (userToken) => {
+// fetch past 1 day post
+export const fetchFilteredPosts = async (userToken, suburbId, mins = 60) => {
     try {
-        const response = await fetch(`${API_LINK}/get_posts?time_interval=1440`
+
+        const param = `get_posts?time_interval=${mins}${suburbId ? `&suburb_id=${suburbId}` : ''}`;
+
+        const response = await fetch(`${API_LINK}/get_posts?time_interval=${mins}`
             , {
                 method: 'GET',
                 headers: {
@@ -152,6 +133,7 @@ export const fetchFilteredPosts = async (userToken) => {
         );
         const data = await response.json();
         if (response.status === 200) {
+            console.log('fetch success: ', data);
             return data.data;
         } else {
             console.error('Failed to fetch posts:', data.error);
@@ -162,19 +144,19 @@ export const fetchFilteredPosts = async (userToken) => {
     }
 };
 
+// handle add post
 export const handleAddPost = async (isLoggedIn: boolean,) => {
     if (!isLoggedIn) {
-        // 未登入：彈出提示，並跳轉到登入頁面
         Alert.alert('Warning', 'Please login to use this function', [
             { text: 'login', onPress: () => router.push('/login') },
             { text: 'cancel' },
         ]);
     } else {
-        // 已登入：跳轉到發文頁面
         router.push('/post');
     }
 };
 
+// get saved location
 export const fetchSavedLocations = async (userToken) => {
     try {
         const response = await fetch(`${API_LINK}/user_saved_suburb`, {
@@ -187,8 +169,10 @@ export const fetchSavedLocations = async (userToken) => {
 
         if (response.ok) {
             const result = await response.json();
-            return result.data;  // 將取得的地點設定到狀態中
+            console.log('success: ', result);
+            return result.data;
         } else {
+            console.log('failed: ', response);
             Alert.alert('Error', 'Failed to fetch saved locations.');
         }
     } catch (error) {
@@ -197,6 +181,7 @@ export const fetchSavedLocations = async (userToken) => {
     }
 };
 
+// check if this location was in saved locations
 export const isLocationSaved = async (weather, savedLocations) => {
     if (!weather) return false;
     return savedLocations.some(
@@ -204,66 +189,28 @@ export const isLocationSaved = async (weather, savedLocations) => {
     );
 };
 
+
 export const setPostModalVisible = (setPostVisible: Function) =>{
     setPostVisible(true);
 }
 
-export const fetchSuburbs = async (userToken) => {
-    try {
-        // 發送 GET 請求以獲取 suburbs 資料
-        const response = await fetch(`${API_LINK}/suburbs`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${userToken}`,
-            },
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            // console.log(result.data);
-            if (result && result.data) {
-                return result.data;
-            } else {
-                throw new Error('Unexpected response format.');
-            }
-
-        } else {
-            switch (response.status) {
-                case 500:
-                    Alert.alert('Error', 'An internal server error occurred. Please try again later.');
-                    break;
-                default:
-                    Alert.alert('Error', 'Failed to fetch suburbs. Please try again.');
-            }
-        }
-
-    } catch (error) {
-        // 捕捉 API 請求或解析中的異常情況
-        console.error('Error fetching suburbs:', error);
-        Alert.alert('Error', `Failed to retrieve suburbs: ${error.message}`);
-    }
-};
-
-
+// handle when user like a post
 export const handleToggleLike = async (userToken, postid, isLiked, prevCount, setLikeCount, setIsLiked) => {
     try {
         const response = await fetch(`${API_LINK}/posts/like`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${userToken}`, // 設定 Authorization Token
+                Authorization: `Bearer ${userToken}`,
             },
-            body: JSON.stringify({ post_id: postid }), // 傳遞 post_id 參數
+            body: JSON.stringify({ post_id: postid }),
         });
 
         const data = await response.json();
-        console.log(data);
         if (response.status === 200) {
             setLikeCount((prevCount) => (!isLiked) ? prevCount + 1 : prevCount - 1);
             setIsLiked(data.liked);
         } else {
-            // 處理錯誤狀態碼
             console.log("Error toggling like:", data.error);
         }
     } catch (error) {
@@ -271,6 +218,7 @@ export const handleToggleLike = async (userToken, postid, isLiked, prevCount, se
     }
 };
 
+// show the correct like number and liked post or not in post
 export const handleLikedPost = async (userToken, postId, setIsLiked) => {
     try {
         const response = await fetch(`${API_LINK}/posts/like/${postId}`, {
@@ -285,7 +233,6 @@ export const handleLikedPost = async (userToken, postId, setIsLiked) => {
         if (response.status === 200) {
             setIsLiked(data.liked);
         } else {
-            // 處理錯誤狀態碼
             console.log("Error getting liked status:", data.error);
         }
     } catch (error) {
@@ -305,10 +252,8 @@ export const handleViewPost = async (userToken, post_id) => {
         })
 
         const data = await response.json();
-        console.log(data);
         if (response.status === 200) {
         } else {
-            // 處理錯誤狀態碼
             console.log("Error toggling like:", data.error);
         }
 
@@ -317,31 +262,6 @@ export const handleViewPost = async (userToken, post_id) => {
     }
 }
 
-export const handleReportPost = async (userToken, postId,report_comment) => {
-    try{
-        const response = await fetch(`${API_LINK}/posts/report`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${userToken}`,
-            },
-            body: JSON.stringify({
-                post_id: postId,
-                report_comment: report_comment,
-            }),
-        })
-        const data = await response.json();
-        console.log(data);
-        if (response.status === 200) {
-        } else {
-            // 處理錯誤狀態碼
-            console.log("Error toggling like:", data.error);
-        }
-
-    } catch (error) {
-        console.error("Failed to report post:", error);
-    }
-}
 
 export const formatTimeDifference = (postedTime) => {
     const now = new Date();
@@ -361,4 +281,3 @@ export const formatTimeDifference = (postedTime) => {
         return `${differenceInDays} days ago`;
     }
 };
-

@@ -1,14 +1,55 @@
 import React, { useState } from 'react';
-import { TouchableOpacity, View, Text, StyleSheet, TextInput, Image } from 'react-native';
+import { TouchableOpacity, View, Text, StyleSheet, TextInput, Image, Alert } from 'react-native';
 import GradientTheme from '@/components/GradientTheme';
 import { useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
+import { API_LINK } from '@/constants/API_link';
+import { useAuth } from '@/components/accAuth';
 
 export default function deleteAccountScreen() {
 
-    const [email, setEmail] = useState('xxxx@google.com');
+    const { userToken, logout } = useAuth();
+    const [password, setPassword] = useState();
     const router = useRouter();
     const navigation = useNavigation();
+
+    // Function to delete the account
+    const handleDeleteAccount = async () => {
+        try {
+            // Show confirmation alert before deleting the account
+            Alert.alert(
+                'Confirm Delete',
+                'Are you sure you want to delete your account? This action is irreversible.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', onPress: async () => {
+                        const response = await fetch(`${API_LINK}/handle_delete_account`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${userToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ password: password }) // Send the user's ID
+                        });
+
+                        const result = await response.json();
+
+                        if (response.status === 200) {
+                            Alert.alert('Success', 'Your account has been deleted successfully.');
+                            await logout();  // Log the user out
+                            navigation.replace('setting');
+                            router.push('/login'); // Redirect to the login screen
+                        } else {
+                            Alert.alert('Error', result.error || 'Failed to delete the account. Please try again.');
+                        }
+                    }},
+                ]
+            );
+        } catch (error) {
+            Alert.alert('Error', 'An error occurred while deleting your account. Please try again later.');
+            console.error('Error deleting account:', error);
+        }
+    };
 
     return (
         <GradientTheme>
@@ -25,15 +66,17 @@ export default function deleteAccountScreen() {
                     <Text style={styles.label}>Enter your password to proceed. {"\n"}
                         This action is permanent.</Text>
                     <TextInput
-                        onChangeText={setEmail}
+                        onChangeText={setPassword}
                         style={styles.input}
+                        placeholder={'Please enter your password'}
+                        secureTextEntry={true}
                     />
                     <View style={styles.buttonContainer}>
                         <TouchableOpacity onPress={() => router.back()} style={styles.cancelButton}>
                             <Text style={styles.cancelText}>Cancel</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => {/* Delete Account Logic */ }} style={styles.saveButton}>
-                            <Text style={styles.saveText}>Save</Text>
+                        <TouchableOpacity onPress={() => handleDeleteAccount()} style={styles.saveButton}>
+                            <Text style={styles.saveText}>DELETE</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

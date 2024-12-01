@@ -1,3 +1,4 @@
+// 建立一個以 id 為基礎的對應字典
 export const weatherIconById = {
     200: 'Thunderstorm', 201: 'Thunderstorm', 202: 'Thunderstorm',
     210: 'Thunderstorm', 211: 'Thunderstorm', 212: 'Thunderstorm',

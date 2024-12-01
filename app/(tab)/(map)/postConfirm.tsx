@@ -6,25 +6,14 @@ import * as ColorScheme from '@/constants/ColorScheme';
 import * as Mappings from '@/constants/Mappings';
 import { useRouter } from 'expo-router';
 import { API_LINK } from '@/constants/API_link';
-import { useAuth } from '@/components/accAuth'; // Import authentication hook
-
-const weatherId = {
-    'Clear Sky': 40,
-    'Rainy': 21,
-    'Cloudy': 43,
-    'Thunderstorm': 5,
-    'Windy': 45,
-    'Storm': 46,
-    'Fog': 34,
-    'Hail': 47,
-    'Hot': 48,
-    'Cold': 49,
-};
+import { useAuth } from '@/components/accAuth';
+import * as RN from "react-native"; // Import authentication hook
 
 export default function PostConfirm() {
-    const { weather, preparationText, location } = useLocalSearchParams(); // Get the query params
+    // Get the post params
+    const { weather, preparationText, location } = useLocalSearchParams();
     const router = useRouter();
-    const { userToken } = useAuth(); // Get the auth token from the useAuth hook
+    const { userToken } = useAuth(); // Get the auth token
 
     const weatherIcon = Mappings.weatherIconMap[weather];
 
@@ -41,7 +30,7 @@ export default function PostConfirm() {
             const requestBody = {
                 latitude: JSON.parse(location).coords.latitude,
                 longitude: JSON.parse(location).coords.longitude,
-                weather_id: weatherId[weather],
+                weather_id: Mappings.WeatherIdMapping[weather],
                 comment: preparationText || '',
             };
 
@@ -50,7 +39,7 @@ export default function PostConfirm() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${userToken}`, // Include the user token in the headers
+                    'Authorization': `Bearer ${userToken}`,
                 },
                 body: JSON.stringify(requestBody),
             });
@@ -94,7 +83,7 @@ export default function PostConfirm() {
                     <Text style={styles.header}>Post Confirm</Text>
 
                     {weatherIcon && (
-                        <Image source={weatherIcon} style={styles.icon} resizeMode="contain"/>
+                        <Image source={weatherIcon} style={styles.icon} resizeMode="contain" />
                     )}
 
                     <Text style={styles.label}>Now it's {weather}</Text>
@@ -110,6 +99,9 @@ export default function PostConfirm() {
                         </TouchableOpacity>
                     </View>
                 </View>
+                {/*<RN.Text style={{color: 'grey'}} onPress={() => RN.Linking.openURL('https://www.flaticon.com/packs/weather-163')}>*/}
+                {/*    weather icons created by iconixar - Flaticon*/}
+                {/*</RN.Text>*/}
             </View>
         </GradientTheme>
     );
